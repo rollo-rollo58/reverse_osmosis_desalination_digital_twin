@@ -1,0 +1,25 @@
+groups:
+  - name: aquaflux-research-availability
+    rules:
+      - alert: AquafluxApiUnavailable
+        expr: up{job="aquaflux-api"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          environment: research
+        annotations:
+          summary: "The AquaFlux research API is unavailable"
+          description: "Check deployment, readiness and service routing."
+      - alert: AquafluxErrorRateElevated
+        expr: |
+          sum(rate(http_requests_total{job="aquaflux-api",status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_requests_total{job="aquaflux-api"}[5m])), 0.001)
+          > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          environment: research
+        annotations:
+          summary: "Research API 5xx responses exceed five percent"
+          description: "HTTP metrics need instrumentation before this rule becomes active."

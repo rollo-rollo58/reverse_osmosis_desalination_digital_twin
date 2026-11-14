@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aquaflux-research
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aquaflux-api
+  namespace: aquaflux-research
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: aquaflux-api
+  template:
+    metadata:
+      labels:
+        app: aquaflux-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: api
+          image: registry.example.invalid/aquaflux-api:REPLACE_WITH_PINNED_DIGEST
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aquaflux-api
+  namespace: aquaflux-research
+spec:
+  selector:
+    app: aquaflux-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
